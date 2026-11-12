@@ -49,8 +49,9 @@ JSON-RPC on stdin/stdout. The Python side is only glue between that and
 python-telegram-bot.
 
 Two things are worth knowing before you run it. The core is a separate binary
-that has to be installed (step 3 below), and messages that arrive while the bot
-is offline are not replayed when it comes back. It is a bridge, not an archive.
+that has to be installed (step 3 below), and this is a bridge, not an archive:
+whatever arrives while it was offline shows up when it starts, but the group's
+older history stays where it is.
 
 ## Requirements
 
@@ -228,7 +229,7 @@ Telegram group but nothing they write reaches Delta Chat.
 
 ## Things it does not do
 
-- No history. Nothing that happened before the bot started is relayed
+- No history. Messages from before the bot first joined are not replayed
 - Locations arrive as a `[Ali] [لوکیشن]` notice without coordinates, because
   the core does not expose them in a message snapshot
 - Stickers and voice notes that Telegram refuses go out as plain documents
