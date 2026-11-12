@@ -1,4 +1,4 @@
-# Deltachat-Telegram Bridge Bot
+# Deltachat⇆Telegram Bridge Bot
 
 A small bot that relays a Delta Chat group to a Telegram group, both ways.
 
