@@ -1,85 +1,108 @@
-# ربات پل دلتاچت ↔ تلگرام
+# Deltachat Telegram Bridge Bot
 
-پلی که پیام‌های یک گروه دلتاچت را به گروه تلگرام می‌برد و پیام ادمین‌ها در تلگرام را به همان گروه دلتاچت برمی‌گرداند.
+A small bot that relays a Delta Chat group to a Telegram group, both ways.
 
-*A Delta Chat ⇄ Telegram bridge bot.*
+## Why this exists
 
----
+Delta Chat runs on email relays, so it keeps working on connections where most
+messengers give up. Telegram is where everyone else already is. This bot sits
+between the two: one Delta Chat account of its own, one Telegram group, and
+messages crossing in both directions with the sender's name, replies and media
+intact.
 
-## چه کارهایی می‌کند؟
+It was written for a Delta Chat group on an Iranian chatmail relay, with the
+operator on Telegram behind a SOCKS5 proxy. There is nothing Iran specific in
+the code, though. Any Delta Chat account and any Telegram bot will do.
 
-- فوروارد پیام‌های گروه دلتاچت به تلگرام، با نام فرستنده: `<b>[نام فرستنده]:</b>`
-- فوروارد مدیا: عکس، گیف، ویدیو، ویس، صدا، موزیک، استیکر، فایل و لوکیشن
-- انتقال Reply ها در هر دو جهت (روی یک پیام در تلگرام Reply کنید، در دلتاچت هم به‌صورت Reply می‌رود)
-- فرستادن مدیا از تلگرام به دلتاچت (ادمین یک عکس یا فایل بفرستد، در گروه دلتاچت می‌نشیند)
-- فیلتر کردن هر نوع پیام به‌صورت جداگانه (مثلاً فقط عکس‌ها فوروارد نشوند) — تنظیماتش در `config.py`
-- اتصال به تلگرام از طریق پروکسی socks5/http، در حالی که دلتاچت مستقیم وصل می‌شود
-- شکستن پیام‌های طولانی به چند پیام مجاز تلگرام
+## What it does
 
-## چطور کار می‌کند؟
+- Relays Delta Chat messages into the Telegram group, prefixed with the sender:
+  `[Ali]:` for text, `[Ali] [تصویر]:` for media with a caption. That label is the
+  Persian word for the media type
+- Moves media both ways: photos, videos, GIFs, voice notes, audio, stickers,
+  documents
+- Keeps replies attached to the right message. Quote something in Telegram and
+  it arrives as a quote in Delta Chat, and the other way round
+- Only Telegram IDs listed in `TG_ADMIN_IDS` can send anything into Delta Chat.
+  Everyone else in the Telegram group is a spectator
+- Every message type has its own allow/block switch, see `IGNORE_*` in the
+  config
+- Telegram traffic can go through a SOCKS5 or HTTP proxy while the Delta Chat
+  side connects directly
+
+## How it works
 
 ```
-   گروه دلتاچت
-        ↕   (بدون پروکسی — اکانت دلتاچت مستقیم وصل می‌شود)
-   اکانت پل (deltachat-rpc-client + هسته‌ی دلتاچت)
-        ↕   (از طریق پروکسی، اگر لازم باشد)
-   ربات تلگرام
-        ↕
-   ادمین‌های تلگرام
+   Delta Chat group
+        |  direct, no proxy
+   bridge account (deltachat-rpc-client + the Delta Chat core)
+        |  through a SOCKS5 proxy if you set one
+   your Telegram bot
+        |
+   admins in the Telegram group
 ```
 
-ربات یک اکانت دلتاچت برای خودش دارد، در گروه عضو می‌شود و با `deltachat-rpc-server` (هسته‌ی دلتاچت) حرف می‌زند. سمت تلگرام هم فقط پیام ادمین‌هایی که در `TG_ADMIN_IDS` هستند قبول می‌شود؛ بقیه‌ی اعضای گروه نمی‌توانند از این مسیر پیام بفرستند.
+The bot owns a Delta Chat account. On the first run it configures that account,
+joins the group through your invite link, and from then on it just listens.
+Under the hood it drives `deltachat-rpc-server`, the Delta Chat core, over
+JSON-RPC on stdin/stdout. The Python side is only glue between that and
+python-telegram-bot.
 
-## پیش‌نیازها
+Two things are worth knowing before you run it. The core is a separate binary
+that has to be installed (step 3 below), and messages that arrive while the bot
+is offline are not replayed when it comes back. It is a bridge, not an archive.
 
-- پایتون ۳.۱۰ یا بالاتر
-- یک اکانت دلتاچت (مثلاً روی یک چت‌میل) با نام کاربری و رمز
-- یک ربات تلگرام از [@BotFather](https://t.me/BotFather)
-- پروکسی برای وصل شدن به تلگرام (اگر سرورتان بدون فیلتر است، لازم نیست)
+## Requirements
 
----
+- Python 3.10 or newer
+- A Delta Chat account you are willing to dedicate to the bot, plus its IMAP and
+  SMTP settings. A chatmail account works fine
+- A bot token from [@BotFather](https://t.me/BotFather)
+- A proxy, if the machine running the bot cannot reach Telegram directly
 
-## نصب
+## Setup
 
-### ۱. گرفتن کد
+### 1. Get the code
 
 ```bash
-git clone https://github.com/arshnme/delta-tg-bridge.git
-cd delta-tg-bridge
+git clone https://github.com/arshnme/Deltachat-Telegram-Bridge-Bot.git
+cd Deltachat-Telegram-Bridge-Bot
 ```
 
-### ۲. محیط مجازی پایتون
+### 2. Make a virtualenv
 
 ```bash
 python3 -m venv venv
-source venv/bin/activate        # ویندوز: venv\Scripts\activate
+source venv/bin/activate          # Windows: venv\Scripts\activate
 ```
 
-### ۳. نصب هسته‌ی دلتاچت ⭐
+### 3. Install the Delta Chat core
 
-کتابخانه‌ی پایتونی به‌تنهایی کار نمی‌کند؛ برنامه‌ی `deltachat-rpc-server` هم لازم است. ربات خودش دنبالش می‌گردد و به این ترتیب پیدایش می‌کند:
+The Python library is a client. It needs `deltachat-rpc-server` next to it, and
+the bot looks for that binary in three places, in this order:
 
-1. مسیری که در `DC_RPC_SERVER_PATH` گذاشته‌اید (اگر پر کرده باشید)
-2. کنار خودِ پایتونِ محیط مجازی، یعنی `venv/bin/deltachat-rpc-server`
-3. داخل `PATH`
+1. the path in `DC_RPC_SERVER_PATH`, if you set one
+2. next to the Python interpreter of your virtualenv, so
+   `venv/bin/deltachat-rpc-server`
+3. anywhere in `PATH`
 
-**روش اول — ساده‌ترین راه (پیشنهاد می‌شود):**
+That second spot is why the easy way works so well:
 
 ```bash
 pip install "deltachat-rpc-server>=2.69,<3"
 ```
 
-همین دستور باینری را می‌ریزد در `venv/bin/deltachat-rpc-server` و چون کنار پایتون محیط مجازی است، ربات خودش پیدایش می‌کند. (اگر `pip install -r requirements.txt` را اجرا کنید، همین پکیج هم نصب می‌شود و کار تمام است.)
-
-می‌توانید چک کنید که درست نصب شده:
+This drops the binary into `venv/bin/` and you are done. It is already listed in
+`requirements.txt`, so the next step installs it too. Check it with:
 
 ```bash
 deltachat-rpc-server --version
 ```
 
-**روش دوم — نصب سراسری روی سرور:**
-
-باینری ساخته‌شده‌ی لینوکس را از صفحه‌ی ریلیزها بردارید ([github.com/chatmail/core/releases](https://github.com/chatmail/core/releases) — پروژه‌ی دلتاچت‌کور حالا زیر نام `chatmail/core` است):
+If you would rather install it system wide, grab the Linux build from the
+releases page ([github.com/chatmail/core/releases](https://github.com/chatmail/core/releases) —
+the core lives in the `chatmail/core` repo now, it used to be
+`deltachat/deltachat-core-rust`):
 
 ```bash
 tar xzf deltachat-rpc-server-*.tar.gz
@@ -88,61 +111,69 @@ sudo chmod +x /usr/local/bin/deltachat-rpc-server
 deltachat-rpc-server --version
 ```
 
-هر جای دیگری هم بگذارید اشکالی ندارد؛ فقط مسیرش را در `config.py` بدهید:
+Any other location is fine too, just point at it from the config:
 
 ```python
-DC_RPC_SERVER_PATH = "/opt/delta-tg-bridge/bin/deltachat-rpc-server"
+DC_RPC_SERVER_PATH = "/opt/deltachat-telegram-bridge/bin/deltachat-rpc-server"
 ```
 
-> هسته یک برنامه‌ی مستقل است و هیچ ارتباطی با پایتون ندارد؛ ربات آن را به‌صورت یک پروسه‌ی جدا اجرا می‌کند و از طریق stdin/stdout با آن حرف می‌زند. مسیر پوشه‌ی `dc_data` هم با `DC_ACCOUNTS_DIR` به آن داده می‌شود.
+The core has nothing to do with Python. The bot starts it as a child process and
+talks to it over stdin/stdout, and hands it `DC_ACCOUNTS_DIR` as the folder for
+its database, keys and downloaded files.
 
-### ۴. نصب کتابخانه‌های پایتون
+### 4. Install the Python packages
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### ۵. ساختن فایل تنظیمات
+### 5. Write the config
 
 ```bash
 cp config.example.py config.py
 nano config.py
 ```
 
-| متغیر | توضیح |
+| Setting | What it is |
 |---|---|
-| `TG_BOT_TOKEN` | توکن ربات از @BotFather |
-| `TG_CHAT_ID` | آیدی گروه تلگرام (برای گروه منفی است، مثلاً `-1001234567890`) |
-| `TG_ADMIN_IDS` | آیدی عددی ادمین‌هایی که اجازه‌ی فرستادن پیام دارند |
-| `PROXY_HOST` / `PROXY_PORT` | پروکسی تلگرام؛ اگر نمی‌خواهید، `PROXY_HOST` را خالی بگذارید |
-| `DC_EMAIL` / `DC_PASSWORD` | اطلاعات اکانت دلتاچت |
-| `DC_IMAP_HOST` / `DC_SMTP_HOST` | سرور ایمیل اکانت دلتاچت |
-| `DC_INVITE_LINK` | لینک دعوت گروه (فقط بار اول استفاده می‌شود) |
-| `DC_GROUP_NAME_HINT` | بخشی از نام گروه، برای پیدا کردنش در لیست چت‌ها |
-| `DC_DISPLAY_NAME` | اسمی که در گروه دلتاچت دیده می‌شود |
-| `IGNORE_*` | فیلتر هر نوع پیام (توضیح کامل داخل خود فایل) |
+| `TG_BOT_TOKEN` | the token from @BotFather |
+| `TG_CHAT_ID` | the Telegram group to relay into. Group IDs are negative, like `-1001234567890` |
+| `TG_ADMIN_IDS` | the numeric IDs allowed to send messages into Delta Chat |
+| `PROXY_HOST`, `PROXY_PORT` | proxy for Telegram. Leave `PROXY_HOST` empty to connect directly |
+| `PROXY_TYPE`, `PROXY_USER`, `PROXY_PASS` | `socks5` or `http`, and credentials if the proxy wants them |
+| `DC_EMAIL`, `DC_PASSWORD` | the Delta Chat account. Used once, to configure it |
+| `DC_IMAP_HOST`, `DC_SMTP_HOST` | mail servers for that account, ports are next to them |
+| `DC_INVITE_LINK` | group invite link from Delta Chat. Only needed the first time |
+| `DC_GROUP_NAME_HINT` | part of the group's name, used to find it in the chat list |
+| `DC_DISPLAY_NAME` | the name the bridge shows in Delta Chat |
+| `DC_RPC_SERVER_PATH` | path to the core binary. Leave empty to autodetect |
+| `IGNORE_*` | one switch per message type. `True` means "don't relay it" |
 
-`config.py` در `.gitignore` هست؛ یعنی امن‌تر است ولی هوای خودتان را هم داشته باشید و رمزها را جایی منتشر نکنید.
+`config.py` is in `.gitignore`. Still, treat it like a password file, because
+that is what it is.
 
-> اگر از قبل یک `config.py` قدیمی دارید، بهتر است اول همین نمونه‌ی جدید را کپی کنید و بعد مقادیر خودتان را داخلش بریزید؛ چون چند کلید تازه (`DC_RPC_SERVER_PATH` و `DC_DISPLAY_NAME`) اضافه شده‌اند.
+If you are upgrading from an older copy of this bot, start from the fresh
+`config.example.py` and move your values in. Two keys (`DC_RPC_SERVER_PATH` and
+`DC_DISPLAY_NAME`) did not exist before.
 
-### ۶. آیدی گروه تلگرام
+### 6. Find the Telegram group ID
 
-ربات را به گروه اضافه کنید، یک پیام در گروه بفرستید و بعد:
+Add the bot to the group, send a message there, then open:
 
 ```
 https://api.telegram.org/bot<TOKEN>/getUpdates
 ```
 
-عدد `"chat": {"id": ...}` را در `TG_CHAT_ID` بگذارید.
+Copy the number after `"chat": {"id":` into `TG_CHAT_ID`.
 
-### ۷. اجرا
+### 7. Run it
 
 ```bash
 python bot.py
 ```
 
-بار اول اکانت دلتاچت ساخته و پیکربندی می‌شود، اگر گروه را نداشته باشد با لینک دعوت جوین می‌شود. از دفعه‌ی بعد مستقیم شروع می‌کند.
+The first run creates and configures the Delta Chat account and joins the group
+if it is not in it yet. Later runs skip straight to relaying.
 
 ```
 2026-11-12 10:00:01 - bridge - INFO - پروکسی تلگرام: socks5://127.0.0.1:1070
@@ -151,89 +182,104 @@ python bot.py
 2026-11-12 10:00:04 - bridge - INFO - ربات پل آماده است ✅
 ```
 
----
+The log lines are in Persian, same as the labels the bot puts on relayed
+messages. The code and the config comments are Persian too. The README is in
+English because you are reading it.
 
-## اجرا به‌صورت سرویس (systemd)
+## Running it as a service
 
-یک کاربر مخصوص بسازید و مالکیت پوشه را به او بدهید:
+Create a system user for it and give it the folder:
 
 ```bash
-sudo useradd --system --home /opt/delta-tg-bridge --shell /usr/sbin/nologin delta-bridge
-sudo mkdir -p /opt/delta-tg-bridge
-sudo cp -r . /opt/delta-tg-bridge/
-sudo chown -R delta-bridge:delta-bridge /opt/delta-tg-bridge
+sudo useradd --system --home /opt/deltachat-telegram-bridge --shell /usr/sbin/nologin bridge
+sudo mkdir -p /opt/deltachat-telegram-bridge
+sudo cp -r . /opt/deltachat-telegram-bridge/
+sudo chown -R bridge:bridge /opt/deltachat-telegram-bridge
 ```
 
-فایل سرویس را کپی کنید:
+Then the unit file:
 
 ```bash
-sudo cp deploy/delta-tg-bridge.service /etc/systemd/system/
+sudo cp deploy/deltachat-telegram-bridge.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now delta-tg-bridge
+sudo systemctl enable --now deltachat-telegram-bridge
 ```
 
-وضعیت و لاگ‌ها:
+Logs and status:
 
 ```bash
-systemctl status delta-tg-bridge
-journalctl -u delta-tg-bridge -f
+systemctl status deltachat-telegram-bridge
+journalctl -u deltachat-telegram-bridge -f
 ```
 
-نکته: در فایل سرویس، `ExecStart` مستقیم به پایتونِ محیط مجازی اشاره می‌کند. چون هسته را کنار همان پایتون نصب کرده‌اید، پیدا شدنش کاری ندارد و به `PATH` سیستم وابسته نیست.
+`ExecStart` points straight at the virtualenv's Python, so the core next to it
+gets found without depending on the system `PATH`. If the service cannot start,
+check `journalctl` first. Permission problems on `dc_data/` show up there as an
+account error from the core.
 
----
+## Using it
 
-## استفاده
+Reply to a relayed message in Telegram and your answer lands as a reply in Delta
+Chat. Write a normal message and it goes as a normal message. Send a photo or a
+file and it arrives as one, caption included.
 
-- پیام‌های گروه دلتاچت با فرمت `[نام فرستنده]:` در گروه تلگرام ظاهر می‌شوند. مدیا هم با یک برچسب نوع می‌آید: `[نام] [📷 تصویر]: کپشن`.
-- برای جواب دادن به یک پیام، روی آن در تلگرام **Reply** کنید؛ در دلتاچت هم به‌صورت Reply به همان پیام می‌رود.
-- برای فرستادن پیام تازه، همین‌طوری در گروه تلگرام بنویسید.
-- عکس یا فایل هم می‌توانید بفرستید؛ در گروه دلتاچت به شکل عکس/فایل می‌نشیند و کپشن تلگرام هم همراهش می‌رود.
-- فقط ادمین‌های `TG_ADMIN_IDS` می‌توانند پیام بفرستند؛ پیام بقیه به دلتاچت نمی‌رود.
+Only the IDs in `TG_ADMIN_IDS` are let through. Everyone else can read the
+Telegram group but nothing they write reaches Delta Chat.
 
-## چند نکته
+## Things it does not do
 
-- لوکیشن فقط به‌صورت یک پیام `📍 لوکیشن` فوروارد می‌شود، چون هسته‌ی دلتاچت مختصات را داخل snapshot پیام نمی‌دهد.
-- استیکرها و ویس‌هایی که فرمتشان با تلگرام جور نباشد، خودکار به‌صورت فایل معمولی فرستاده می‌شوند.
-- اگر متن یک پیام از سقف کپشن تلگرام (۱۰۲۴ کاراکتر) رد شود، اول مدیا بی‌کپشن می‌رود و بعد متن به‌صورت Reply زیر آن می‌آید.
-- تاریخچه‌ی پیام‌ها منتقل نمی‌شود؛ فقط پیام‌های بعد از اجرای ربات رد و بدل می‌شوند.
+- No history. Nothing that happened before the bot started is relayed
+- Locations arrive as a `[Ali] [لوکیشن]` notice without coordinates, because
+  the core does not expose them in a message snapshot
+- Stickers and voice notes that Telegram refuses go out as plain documents
+  instead of failing
+- Telegram caps bot downloads at 20 MB by default, so bigger files coming from
+  Telegram are dropped. The log says so
+- A caption longer than 1024 characters is sent as a separate message right
+  under the media
+- One Delta Chat group per bot instance
 
-## عیب‌یابی
+## When something breaks
 
-**`FileNotFoundError: دلتاچت‌کور پیدا نشد`**
-هسته نصب نیست. `pip install deltachat-rpc-server` را داخل همان محیط مجازی اجرا کنید یا مسیرش را در `DC_RPC_SERVER_PATH` بگذارید.
+**`FileNotFoundError: دلتاچتکور پیدا نشد`**
+The core is not installed. Run `pip install deltachat-rpc-server` inside the
+virtualenv, or set `DC_RPC_SERVER_PATH`.
 
 **`فایل config.py پیدا نشد`**
-`cp config.example.py config.py` و مقادیر را پر کنید.
+You skipped step 5. `cp config.example.py config.py` and fill it in.
 
-**ربات به تلگرام وصل نمی‌شود**
-اگر سرورتان فیلتر است، پروکسی را در `config.py` تنظیم کنید و مطمئن شوید پروکسی روی همان پورت بالاست: `curl -x socks5://127.0.0.1:1070 https://api.telegram.org`
+**The bot cannot reach Telegram**
+Set the proxy in `config.py`. To check the proxy itself is alive:
 
-**به گروه دلتاچت جوین نمی‌شود**
-- `DC_INVITE_LINK` را دوباره از دلتاچت بگیرید (لینک‌ها منقضی می‌شوند).
-- با `DC_GROUP_NAME_HINT` چک کنید اسم گروه همان باشد؛ اگر ربات قبلاً عضو شده باشد اصلاً نیازی به لینک نیست.
-
-**پیام‌های دلتاچت نمی‌آیند**
-- اگر اکانت در گروه نیست، هیچ پیامی هم نمی‌آید. `dc_data` را پاک نکنید؛ دیتابیس و کلیدهای اکانت آنجاست.
-- لاگ را نگاه کنید؛ خطای پیکربندی اکانت همان‌جا می‌آید.
-
-**فایل‌ها منتقل نمی‌شوند**
-حجم فایل‌های تلگرام برای ربات محدود است (پیش‌فرض ۲۰ مگابایت برای دانلود). فایل‌های بزرگ‌تر رد می‌شوند و در لاگ می‌بینید.
-
-**پیام‌ها دوباره و دوباره می‌آیند**
-یعنی دو نسخه از ربات هم‌زمان بالا هستند. `systemctl status` و پروسه‌های پایتون را چک کنید.
-
-## ساختار پروژه
-
-```
-bot.py                          کد اصلی ربات
-config.example.py               نمونه‌ی تنظیمات (کپی کنید به config.py)
-requirements.txt                پکیج‌های لازم (شامل خود هسته‌ی دلتاچت)
-deploy/delta-tg-bridge.service  فایل سرویس systemd
-dc_data/                        داده‌های دلتاچت (ساخته می‌شود، کامیت نمی‌شود)
-media_tmp/                      فایل‌های موقت تلگرام (ساخته می‌شود، کامیت نمی‌شود)
+```bash
+curl -x socks5://127.0.0.1:1070 https://api.telegram.org
 ```
 
-## مجوز
+**It will not join the Delta Chat group**
+Invite links expire. Take a fresh one from Delta Chat. If the account is already
+in the group, no link is needed at all, and `DC_GROUP_NAME_HINT` just has to
+match part of the group name.
+
+**No messages come through**
+Look at the log. If the core could not configure the account, the reason is
+there. Do not delete `dc_data/` to "fix" it, that folder is the account:
+database, keys and all.
+
+**The same message shows up twice**
+Two copies of the bot are running. Check `systemctl status` and your Python
+processes.
+
+## Files
+
+```
+bot.py                                      the bot
+config.example.py                           copy this to config.py
+requirements.txt                            deps, core included
+deploy/deltachat-telegram-bridge.service    systemd unit
+dc_data/                                    Delta Chat account data (created at runtime, not committed)
+media_tmp/                                  scratch space for Telegram uploads (created at runtime)
+```
+
+## License
 
 MIT
