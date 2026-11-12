@@ -1,5 +1,5 @@
 """
-ربات پل دلتاچت ↔ تلگرام
+ربات پل دلتاچت ⇄ تلگرام
 
 پیام‌های گروه دلتاچت را به گروه تلگرام فوروارد می‌کند و پیام ادمین‌ها در
 تلگرام را به همان گروه دلتاچت می‌رساند. Reply ها هم دو طرفه منتقل می‌شوند.
@@ -149,16 +149,19 @@ def reply_params(message_id: int | None) -> ReplyParameters | None:
 # تشخیص نوع پیام دلتاچت
 # ══════════════════════════════════════════════════════════════════════════════
 
+# برچسب نوع پیام. نماد تکرنگ یونیکد که معنایش واضح باشد برای همه‌ی این نوع‌ها
+# وجود ندارد، پس خود کلمه معنی را می‌رساند (ایموجی رنگی عمداً استفاده نشده،
+# چون کلاینت‌ها آن را رنگی رندر می‌کنند و در همه‌ی فونت‌ها هم یک‌شکل نیست).
 TYPE_LABEL_FA = {
-    "image":    "📷 تصویر",
-    "gif":      "🎞 گیف",
-    "video":    "🎥 ویدیو",
-    "audio":    "🔊 صدا",
-    "voice":    "🎤 ویس",
-    "music":    "🎵 موزیک",
-    "sticker":  "🖼 استیکر",
-    "file":     "📎 فایل",
-    "location": "📍 لوکیشن",
+    "image":    "تصویر",
+    "gif":      "گیف",
+    "video":    "ویدیو",
+    "audio":    "صدا",
+    "voice":    "ویس",
+    "music":    "موزیک",
+    "sticker":  "استیکر",
+    "file":     "فایل",
+    "location": "لوکیشن",
 }
 
 
@@ -546,7 +549,7 @@ async def telegram_message_handler(update: Update, ctx: ContextTypes.DEFAULT_TYP
         logger.info("تلگرام → دلتاچت: %s", (text or file_path.name)[:60])
     except Exception as e:
         logger.error("خطا در ارسال به دلتاچت: %s", e, exc_info=True)
-        await message.reply_text(f"❌ ارسال به دلتاچت نشد:\n{e}")
+        await message.reply_text(f"✕ ارسال به دلتاچت نشد:\n{e}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -576,7 +579,7 @@ async def main() -> None:
 
     # ── راه‌اندازی دلتاچت ───────────────────────────────────────────────────
     await setup_deltachat()
-    logger.info("ربات پل آماده است ✅")
+    logger.info("ربات پل آماده است.")
 
     async with tg_app:
         await tg_app.start()
@@ -590,7 +593,7 @@ async def main() -> None:
             await tg_app.updater.stop()
             await tg_app.stop()
             await asyncio.to_thread(dc_rpc.close)
-            logger.info("خداحافظ 👋")
+            logger.info("خداحافظ.")
 
 
 if __name__ == "__main__":

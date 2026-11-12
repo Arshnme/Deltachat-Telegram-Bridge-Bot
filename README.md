@@ -180,7 +180,7 @@ if it is not in it yet. Later runs skip straight to relaying.
 2026-11-12 10:00:01 - bridge - INFO - پروکسی تلگرام: socks5://127.0.0.1:1070
 2026-11-12 10:00:03 - bridge - INFO - اکانت موجود بارگذاری شد.
 2026-11-12 10:00:04 - bridge - INFO - گروه «My Group» پیدا شد.
-2026-11-12 10:00:04 - bridge - INFO - ربات پل آماده است ✅
+2026-11-12 10:00:04 - bridge - INFO - ربات پل آماده است.
 ```
 
 The log lines are in Persian, same as the labels the bot puts on relayed
