@@ -1,0 +1,17 @@
+[Unit]
+Description=Delta Chat <-> Telegram bridge bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=delta-bridge
+Group=delta-bridge
+WorkingDirectory=/opt/delta-tg-bridge
+ExecStart=/opt/delta-tg-bridge/venv/bin/python /opt/delta-tg-bridge/bot.py
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
