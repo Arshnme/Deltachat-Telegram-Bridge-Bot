@@ -1,0 +1,9 @@
+# هسته‌ی دلتاچت (همین پکیج، باینری deltachat-rpc-server را روی سیستم نصب می‌کند)
+deltachat-rpc-server>=2.69,<3
+
+# کتابخانه‌ی پایتونی که با هسته حرف می‌زند
+deltachat-rpc-client>=2.69,<3
+
+# ربات تلگرام + پشتیبانی از پروکسی سوکس
+python-telegram-bot[socks]>=22.0,<23
+httpx[socks]>=0.27
