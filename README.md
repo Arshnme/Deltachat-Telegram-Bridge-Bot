@@ -66,7 +66,7 @@ older history stays where it is.
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/arshnme/Deltachat-Telegram-Bridge-Bot.git
+git clone https://github.com/Arshnme/Deltachat-Telegram-Bridge-Bot.git
 cd Deltachat-Telegram-Bridge-Bot
 ```
 
