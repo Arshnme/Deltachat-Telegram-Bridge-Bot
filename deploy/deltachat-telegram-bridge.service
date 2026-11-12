@@ -1,0 +1,17 @@
+[Unit]
+Description=Deltachat Telegram Bridge Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bridge
+Group=bridge
+WorkingDirectory=/opt/deltachat-telegram-bridge
+ExecStart=/opt/deltachat-telegram-bridge/venv/bin/python /opt/deltachat-telegram-bridge/bot.py
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
